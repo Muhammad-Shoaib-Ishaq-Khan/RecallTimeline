@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RecallTimeline Case_E001</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0d1117;--surf:#161b22;--surf2:#21262d;--surf3:#2d333b;
+  --acc:#388bfd;--flag:#f85149;--ok:#3fb950;--warn:#e3b341;
+  --txt:#c9d1d9;--txt2:#8b949e;--txt3:#6e7681;--bdr:#30363d;
+  --font:'Segoe UI',system-ui,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--font);font-size:13px}
+header{background:var(--surf);border-bottom:2px solid var(--acc);padding:16px 28px}
+h1{font-size:1.25rem;color:var(--acc);font-weight:700}
+.meta{color:var(--txt2);font-size:.8rem;margin-top:4px}
+.stats{display:flex;gap:10px;padding:14px 28px;flex-wrap:wrap}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;
+       padding:11px 16px;min-width:138px}
+.card .n{font-size:1.8rem;font-weight:800;color:var(--acc)}
+.card .l{color:var(--txt2);font-size:.75rem;margin-top:2px}
+.card.danger .n{color:var(--flag)}
+.card.ok .n{color:var(--ok)}
+.row2{display:flex;gap:14px;margin:0 28px 18px;flex-wrap:wrap}
+.chart-box{flex:2;min-width:300px;background:var(--surf);border-radius:8px;
+            padding:14px;border:1px solid var(--bdr)}
+.chart-box h3,.pie-box h3{color:var(--txt2);font-size:.78rem;
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px}
+.pie-box{flex:1;min-width:180px;background:var(--surf);border-radius:8px;
+          padding:14px;border:1px solid var(--bdr)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;
+         font-size:.73rem;color:var(--txt2)}
+.leg-sq{width:9px;height:9px;border-radius:2px;display:inline-block;
+         margin-right:3px;vertical-align:middle}
+.ctrl{padding:0 28px 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ctrl input{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
+             padding:7px 12px;border-radius:6px;width:320px;font-size:.87rem}
+.ctrl input:focus{outline:2px solid var(--acc)}
+.badge{background:var(--acc);color:#fff;border-radius:10px;
+        padding:2px 9px;font-size:.71rem}
+.btn-filter{background:var(--surf2);border:1px solid var(--bdr);
+             color:var(--txt2);padding:5px 11px;border-radius:6px;
+             font-size:.78rem;cursor:pointer}
+.btn-filter.active{background:var(--flag);color:#fff;border-color:var(--flag)}
+.tbl-wrap{margin:0 28px 20px;overflow-x:auto;border-radius:8px;
+           border:1px solid var(--bdr)}
+table{width:100%;border-collapse:collapse}
+th{background:var(--surf2);color:var(--txt2);text-transform:uppercase;
+    font-size:.67rem;letter-spacing:.05em;padding:9px 11px;
+    text-align:left;cursor:pointer;white-space:nowrap;user-select:none}
+th:hover{color:var(--acc)}
+td{padding:8px 11px;border-bottom:1px solid var(--bdr);
+    vertical-align:middle;color:var(--txt)}
+tr:hover td{background:var(--surf2)}
+tr.flag-row td{background:rgba(248,81,73,.05)}
+tr.flag-row:hover td{background:rgba(248,81,73,.11)}
+tr.selected td{background:rgba(56,139,253,.12)!important;
+                outline:1px solid var(--acc)}
+.flag-cell{color:var(--flag);font-size:.75rem;font-weight:600}
+.mono{font-family:monospace;font-size:.71rem;color:var(--txt2)}
+.proc{background:var(--surf2);color:var(--txt2);border-radius:4px;
+       padding:1px 6px;font-size:.74rem;font-family:monospace}
+.fg{text-align:center;color:var(--ok)}
+.src{font-size:.69rem;color:var(--txt3)}
+.no-url{color:var(--txt3);font-size:.75rem}
+a{color:var(--acc);text-decoration:none}
+a:hover{text-decoration:underline}
+.hidden{display:none}
+
+/* ── Detail panel ── */
+#detail-panel{
+  position:fixed;right:0;top:0;bottom:0;width:420px;
+  background:var(--surf);border-left:1px solid var(--bdr);
+  transform:translateX(100%);transition:transform .22s ease;
+  overflow-y:auto;z-index:100;display:flex;flex-direction:column;
+}
+#detail-panel.open{transform:translateX(0)}
+#detail-header{
+  background:var(--surf2);padding:14px 18px;
+  border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:2;
+}
+#detail-header h2{font-size:.92rem;color:var(--acc);font-weight:600}
+#detail-close{background:none;border:none;color:var(--txt2);
+               font-size:1.2rem;cursor:pointer;padding:2px 6px;
+               border-radius:4px}
+#detail-close:hover{background:var(--surf3);color:var(--txt)}
+#detail-body{padding:16px 18px;flex:1}
+.det-section{margin-bottom:18px}
+.det-section h3{font-size:.72rem;color:var(--txt2);text-transform:uppercase;
+                 letter-spacing:.07em;margin-bottom:8px;
+                 padding-bottom:5px;border-bottom:1px solid var(--bdr)}
+.det-row{display:flex;gap:8px;margin-bottom:7px;align-items:flex-start}
+.det-label{min-width:100px;color:var(--txt2);font-size:.75rem;flex-shrink:0;
+            padding-top:1px}
+.det-val{color:var(--txt);font-size:.8rem;word-break:break-all;flex:1}
+.det-val.mono{font-family:monospace;font-size:.72rem}
+.det-val a{color:var(--acc)}
+.flag-block{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25);
+             border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.flag-name{color:var(--flag);font-weight:600;font-size:.8rem;
+            font-family:monospace;margin-bottom:4px}
+.flag-reason{color:var(--txt2);font-size:.77rem;line-height:1.45}
+.flag-reason em{color:var(--warn);font-style:normal}
+.no-flags{color:var(--ok);font-size:.8rem;}
+.corr-block{background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.25);
+             border-radius:6px;padding:8px 12px;color:var(--ok);font-size:.78rem}
+.url-block{background:var(--surf2);border-radius:6px;padding:8px 12px;
+            font-family:monospace;font-size:.75rem;color:var(--acc);
+            word-break:break-all}
+.url-none{color:var(--txt3);font-size:.78rem}
+.url-why{margin-top:6px;color:var(--txt2);font-size:.73rem;line-height:1.4}
+.hash-full{font-family:monospace;font-size:.72rem;color:var(--txt2);
+            word-break:break-all;background:var(--surf2);border-radius:4px;
+            padding:6px 8px;margin-top:4px}
+
+footer{text-align:center;padding:18px;color:var(--txt2);
+        font-size:.75rem;border-top:1px solid var(--bdr)}
+</style>
+</head>
+<body>
+
+<!-- ── Detail Panel ── -->
+<div id="detail-panel">
+  <div id="detail-header">
+    <h2 id="dp-title">Event Details</h2>
+    <button id="detail-close" onclick="closeDetail()" title="Close">✕</button>
+  </div>
+  <div id="detail-body"></div>
+</div>
+
+<header>
+  <div>
+    <h1>🔍 RecallTimeline Forensic Report</h1>
+    <div class="meta">
+      Case: <strong style="color:var(--txt)">Case_E001</strong> &nbsp;|&nbsp;
+      Generated: 2026-04-25 22:59:23 &nbsp;|&nbsp;
+      Authors: M.S.I. Khan | A. Hassan | Z. Nazar
+    </div>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="card"><div class="n">65</div><div class="l">Total Events</div></div>
+  <div class="card danger"><div class="n">34</div><div class="l">Flagged Events</div></div>
+  <div class="card ok"><div class="n">31</div><div class="l">Clean Events</div></div>
+  <div class="card"><div class="n">26</div><div class="l">Unique Processes</div></div>
+  <div class="card"><div class="n">17</div><div class="l">Unique URLs</div></div>
+  <div class="card"><div class="n">2026-03-15</div><div class="l">First Event</div></div>
+  <div class="card"><div class="n">2026-04-21</div><div class="l">Last Event</div></div>
+</div>
+
+<div class="row2">
+  <div class="chart-box">
+    <h3>Activity Frequency — Events per Hour</h3>
+    <canvas id="actChart" height="88"></canvas>
+  </div>
+  <div class="pie-box">
+    <h3>Process Distribution</h3>
+    <canvas id="pieChart" height="145"></canvas>
+    <div class="legend" id="pieLegend"></div>
+  </div>
+</div>
+
+<div class="ctrl">
+  <input id="sb" type="text"
+    placeholder="🔎  Search timestamp, window, process, URL, flags…"
+    oninput="filt()">
+  <button class="btn-filter" id="btnFlagged" onclick="toggleFlagged()">
+    ⚑ Show flagged only
+  </button>
+  <span class="badge" id="cnt">65 events</span>
+  <span style="color:var(--txt2);font-size:.75rem;margin-left:4px">
+    ↓ Click any row for details
+  </span>
+</div>
+
+<div class="tbl-wrap">
+<table>
+<thead>
+<tr>
+  <th onclick="srt(0)">Timestamp ↕</th>
+  <th onclick="srt(1)">Window Title ↕</th>
+  <th onclick="srt(2)">Process ↕</th>
+  <th>URL</th>
+  <th>FG</th>
+  <th onclick="srt(5)">Flags ↕</th>
+  <th>SHA-256</th>
+  <th>Source</th>
+</tr>
+</thead>
+<tbody id="tb">
+<tr class="" data-idx="0" onclick="showDetail(0)" style="cursor:pointer">
+  <td>2026-03-15T09:00:02</td>
+  <td>Google Chrome - Gmail</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://mail.google.com' target='_blank' onclick='event.stopPropagation()'>https://mail.google.com</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="1" onclick="showDetail(1)" style="cursor:pointer">
+  <td>2026-03-15T09:01:19</td>
+  <td>Microsoft Word - Document1</td>
+  <td><span class="proc">WINWORD.EXE</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="2" onclick="showDetail(2)" style="cursor:pointer">
+  <td>2026-03-15T09:01:49</td>
+  <td>File Explorer - Documents</td>
+  <td><span class="proc">explorer.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="3" onclick="showDetail(3)" style="cursor:pointer">
+  <td>2026-03-15T09:03:04</td>
+  <td>Visual Studio Code - project</td>
+  <td><span class="proc">Code.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="4" onclick="showDetail(4)" style="cursor:pointer">
+  <td>2026-03-15T09:03:37</td>
+  <td>Task Manager</td>
+  <td><span class="proc">Taskmgr.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">confidential, taskmgr</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="5" onclick="showDetail(5)" style="cursor:pointer">
+  <td>2026-03-15T09:04:54</td>
+  <td>Command Prompt</td>
+  <td><span class="proc">cmd.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">private, cmd.exe</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="6" onclick="showDetail(6)" style="cursor:pointer">
+  <td>2026-03-15T09:06:13</td>
+  <td>Windows PowerShell</td>
+  <td><span class="proc">powershell.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">powershell</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="7" onclick="showDetail(7)" style="cursor:pointer">
+  <td>2026-03-15T09:06:15</td>
+  <td>Notepad - Untitled</td>
+  <td><span class="proc">notepad.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">○</td>
+  <td class="flag-cell">burst_activity</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="8" onclick="showDetail(8)" style="cursor:pointer">
+  <td>2026-03-15T09:06:47</td>
+  <td>Dropbox - Upload</td>
+  <td><span class="proc">Dropbox.exe</span></td>
+  <td><a href='https://dropbox.com/upload' target='_blank' onclick='event.stopPropagation()'>https://dropbox.com/upload</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">upload, dropbox</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="9" onclick="showDetail(9)" style="cursor:pointer">
+  <td>2026-03-15T09:07:33</td>
+  <td>PuTTY Configuration</td>
+  <td><span class="proc">putty.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="10" onclick="showDetail(10)" style="cursor:pointer">
+  <td>2026-03-15T09:07:47</td>
+  <td>Chrome - Pastebin</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://pastebin.com/raw/abc123' target='_blank' onclick='event.stopPropagation()'>https://pastebin.com/raw/abc123</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">export, pastebin</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="11" onclick="showDetail(11)" style="cursor:pointer">
+  <td>2026-03-15T09:08:13</td>
+  <td>Chrome - GitHub</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://github.com' target='_blank' onclick='event.stopPropagation()'>https://github.com</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="12" onclick="showDetail(12)" style="cursor:pointer">
+  <td>2026-03-15T09:09:07</td>
+  <td>Microsoft Outlook</td>
+  <td><span class="proc">OUTLOOK.EXE</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">secret</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="13" onclick="showDetail(13)" style="cursor:pointer">
+  <td>2026-03-15T09:10:23</td>
+  <td>Registry Editor</td>
+  <td><span class="proc">regedit.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">private, regedit</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="14" onclick="showDetail(14)" style="cursor:pointer">
+  <td>2026-03-15T09:10:24</td>
+  <td>Adobe Acrobat Reader</td>
+  <td><span class="proc">AcroRd32.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">○</td>
+  <td class="flag-cell">burst_activity</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="15" onclick="showDetail(15)" style="cursor:pointer">
+  <td>2026-03-15T09:11:43</td>
+  <td>Excel - CONFIDENTIAL_Q1.xlsx</td>
+  <td><span class="proc">EXCEL.EXE</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">confidential</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="16" onclick="showDetail(16)" style="cursor:pointer">
+  <td>2026-03-15T09:11:49</td>
+  <td>MEGAsync - Upload</td>
+  <td><span class="proc">MEGAsync.exe</span></td>
+  <td><a href='https://mega.nz/folder/abc' target='_blank' onclick='event.stopPropagation()'>https://mega.nz/folder/abc</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">upload, mega.nz</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="17" onclick="showDetail(17)" style="cursor:pointer">
+  <td>2026-03-15T09:11:58</td>
+  <td>Word - secret_strategy.docx</td>
+  <td><span class="proc">WINWORD.EXE</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">secret</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="18" onclick="showDetail(18)" style="cursor:pointer">
+  <td>2026-03-15T09:13:30</td>
+  <td>Chrome - YouTube</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://youtube.com' target='_blank' onclick='event.stopPropagation()'>https://youtube.com</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="19" onclick="showDetail(19)" style="cursor:pointer">
+  <td>2026-03-15T09:14:11</td>
+  <td>Slack - General</td>
+  <td><span class="proc">slack.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="20" onclick="showDetail(20)" style="cursor:pointer">
+  <td>2026-03-15T09:14:42</td>
+  <td>Microsoft Teams</td>
+  <td><span class="proc">Teams.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="21" onclick="showDetail(21)" style="cursor:pointer">
+  <td>2026-03-15T09:14:45</td>
+  <td>Chrome - LinkedIn</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://linkedin.com' target='_blank' onclick='event.stopPropagation()'>https://linkedin.com</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">secret, burst_activity</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="22" onclick="showDetail(22)" style="cursor:pointer">
+  <td>2026-03-15T09:16:00</td>
+  <td>Paint - Untitled</td>
+  <td><span class="proc">mspaint.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">○</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="23" onclick="showDetail(23)" style="cursor:pointer">
+  <td>2026-03-15T09:17:02</td>
+  <td>Calculator</td>
+  <td><span class="proc">Calculator.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="24" onclick="showDetail(24)" style="cursor:pointer">
+  <td>2026-03-15T09:18:14</td>
+  <td>Notepad++ - notes.txt</td>
+  <td><span class="proc">notepad++.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="25" onclick="showDetail(25)" style="cursor:pointer">
+  <td>2026-03-15T09:18:56</td>
+  <td>Chrome - AWS Console</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://console.aws.amazon.com' target='_blank' onclick='event.stopPropagation()'>https://console.aws.amazon.com</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">private</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="26" onclick="showDetail(26)" style="cursor:pointer">
+  <td>2026-03-15T09:20:01</td>
+  <td>Windows Terminal</td>
+  <td><span class="proc">wt.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">secret</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="27" onclick="showDetail(27)" style="cursor:pointer">
+  <td>2026-03-15T09:20:52</td>
+  <td>Chrome - Google Drive</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://drive.google.com' target='_blank' onclick='event.stopPropagation()'>https://drive.google.com</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="28" onclick="showDetail(28)" style="cursor:pointer">
+  <td>2026-03-15T09:20:54</td>
+  <td>Excel - Budget_2026.xlsx</td>
+  <td><span class="proc">EXCEL.EXE</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">burst_activity</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="29" onclick="showDetail(29)" style="cursor:pointer">
+  <td>2026-03-15T09:22:24</td>
+  <td>Chrome - Twitter</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://twitter.com' target='_blank' onclick='event.stopPropagation()'>https://twitter.com</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="30" onclick="showDetail(30)" style="cursor:pointer">
+  <td>2026-03-15T09:23:32</td>
+  <td>Word - employee_review.docx</td>
+  <td><span class="proc">WINWORD.EXE</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="31" onclick="showDetail(31)" style="cursor:pointer">
+  <td>2026-03-15T09:24:34</td>
+  <td>Chrome - NetBanking</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://netbanking.example.com' target='_blank' onclick='event.stopPropagation()'>https://netbanking.example.com</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="32" onclick="showDetail(32)" style="cursor:pointer">
+  <td>2026-03-15T09:24:43</td>
+  <td>Chrome - Facebook</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://facebook.com' target='_blank' onclick='event.stopPropagation()'>https://facebook.com</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">secret</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="33" onclick="showDetail(33)" style="cursor:pointer">
+  <td>2026-03-15T09:25:18</td>
+  <td>Chrome - Reddit</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://reddit.com' target='_blank' onclick='event.stopPropagation()'>https://reddit.com</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">secret</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="34" onclick="showDetail(34)" style="cursor:pointer">
+  <td>2026-03-15T09:25:22</td>
+  <td>VLC Media Player</td>
+  <td><span class="proc">vlc.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">burst_activity</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="35" onclick="showDetail(35)" style="cursor:pointer">
+  <td>2026-03-15T09:25:25</td>
+  <td>7-Zip File Manager</td>
+  <td><span class="proc">7zFM.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">confidential, burst_activity</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="36" onclick="showDetail(36)" style="cursor:pointer">
+  <td>2026-03-15T09:26:31</td>
+  <td>Chrome - Pastebin Raw</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://pastebin.com/raw/xyz789' target='_blank' onclick='event.stopPropagation()'>https://pastebin.com/raw/xyz789</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">pastebin</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="37" onclick="showDetail(37)" style="cursor:pointer">
+  <td>2026-03-15T09:27:05</td>
+  <td>PowerShell - Admin</td>
+  <td><span class="proc">powershell.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">confidential, powershell</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="flag-row" data-idx="38" onclick="showDetail(38)" style="cursor:pointer">
+  <td>2026-03-15T09:28:02</td>
+  <td>Chrome - Dropbox</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://dropbox.com' target='_blank' onclick='event.stopPropagation()'>https://dropbox.com</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">dropbox</td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="39" onclick="showDetail(39)" style="cursor:pointer">
+  <td>2026-03-15T09:30:01</td>
+  <td>Zoom Meeting</td>
+  <td><span class="proc">Zoom.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">—</td>
+  <td class="src">ukg.db</td>
+</tr>
+<tr class="" data-idx="40" onclick="showDetail(40)" style="cursor:pointer">
+  <td>2026-03-15T13:45:00</td>
+  <td>Inbox - Microsoft Outlook</td>
+  <td><span class="proc">OUTLOOK.EXE</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">66b97e4b8756fe…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="flag-row" data-idx="41" onclick="showDetail(41)" style="cursor:pointer">
+  <td>2026-03-15T13:45:45</td>
+  <td>Q1_Financial_Report_CONFIDENTIAL.xlsx - Excel</td>
+  <td><span class="proc">EXCEL.EXE</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">confidential</td>
+  <td class="mono">76ba14c6dcf0cc…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="flag-row" data-idx="42" onclick="showDetail(42)" style="cursor:pointer">
+  <td>2026-03-15T13:46:30</td>
+  <td>Q1_Financial_Report_CONFIDENTIAL.xlsx - Excel</td>
+  <td><span class="proc">EXCEL.EXE</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">confidential</td>
+  <td class="mono">4c299581a69605…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="flag-row" data-idx="43" onclick="showDetail(43)" style="cursor:pointer">
+  <td>2026-03-15T13:47:30</td>
+  <td>secret_strategy_2026.docx - Word</td>
+  <td><span class="proc">WINWORD.EXE</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">secret</td>
+  <td class="mono">00dc6a55826d1a…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="flag-row" data-idx="44" onclick="showDetail(44)" style="cursor:pointer">
+  <td>2026-03-15T13:48:40</td>
+  <td>File Transfer - Mega</td>
+  <td><span class="proc">MEGAsync.exe</span></td>
+  <td><a href='https://mega.nz/folder/xYzAbCdE#upload' target='_blank' onclick='event.stopPropagation()'>https://mega.nz/folder/xYzAbCdE#upload</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">upload, transfer, mega.nz</td>
+  <td class="mono">7c2901f19b32b1…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="flag-row" data-idx="45" onclick="showDetail(45)" style="cursor:pointer">
+  <td>2026-03-15T13:48:44</td>
+  <td>File Transfer - Mega</td>
+  <td><span class="proc">MEGAsync.exe</span></td>
+  <td><a href='https://mega.nz/folder/xYzAbCdE#upload' target='_blank' onclick='event.stopPropagation()'>https://mega.nz/folder/xYzAbCdE#upload</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">upload, transfer, mega.nz, burst_activity</td>
+  <td class="mono">4bdce7de0af2b2…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="flag-row" data-idx="46" onclick="showDetail(46)" style="cursor:pointer">
+  <td>2026-03-15T13:48:48</td>
+  <td>File Transfer - Mega (Upload Complete)</td>
+  <td><span class="proc">MEGAsync.exe</span></td>
+  <td><a href='https://mega.nz/folder/xYzAbCdE#upload' target='_blank' onclick='event.stopPropagation()'>https://mega.nz/folder/xYzAbCdE#upload</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">upload, transfer, mega.nz, burst_activity</td>
+  <td class="mono">452844a8171533…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="flag-row" data-idx="47" onclick="showDetail(47)" style="cursor:pointer">
+  <td>2026-03-15T13:50:10</td>
+  <td>Administrator: Windows PowerShell</td>
+  <td><span class="proc">powershell.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">powershell</td>
+  <td class="mono">932ea266249023…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="48" onclick="showDetail(48)" style="cursor:pointer">
+  <td>2026-03-15T13:51:20</td>
+  <td>Inbox - Microsoft Outlook</td>
+  <td><span class="proc">OUTLOOK.EXE</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">c07d4e24a0ab71…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="49" onclick="showDetail(49)" style="cursor:pointer">
+  <td>2026-03-15T13:52:20</td>
+  <td>Google Chrome</td>
+  <td><span class="proc">chrome.exe</span></td>
+  <td><a href='https://www.linkedin.com/jobs/' target='_blank' onclick='event.stopPropagation()'>https://www.linkedin.com/jobs/</a></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">d3c0816726fbe3…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="50" onclick="showDetail(50)" style="cursor:pointer">
+  <td>2026-04-20T17:48:23</td>
+  <td>create a beautiful post for my linkdin about DevOps and why we need it m</td>
+  <td><span class="proc">firefox.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">504c946d310e11…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="51" onclick="showDetail(51)" style="cursor:pointer">
+  <td>2026-04-20T17:48:28</td>
+  <td>Using Timeshift for System&#x27;s Snapshots and Recovery on Debian 12 via Com</td>
+  <td><span class="proc">firefox.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">f8006e6ee53196…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="52" onclick="showDetail(52)" style="cursor:pointer">
+  <td>2026-04-20T17:48:33</td>
+  <td>DeepSeek - Into the Unknown — Mozilla Firefox</td>
+  <td><span class="proc">firefox.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">150710bc66dfe7…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="flag-row" data-idx="53" onclick="showDetail(53)" style="cursor:pointer">
+  <td>2026-04-20T17:48:38</td>
+  <td>C:\Windows\System32\cmd.exe - python  capture_snapshots.py</td>
+  <td><span class="proc">WindowsTerminal.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">cmd.exe, python</td>
+  <td class="mono">02f6bf7bc83472…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="54" onclick="showDetail(54)" style="cursor:pointer">
+  <td>2026-04-20T17:48:44</td>
+  <td>DFTT - File Explorer</td>
+  <td><span class="proc">explorer.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">daf552a2d556e5…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="55" onclick="showDetail(55)" style="cursor:pointer">
+  <td>2026-04-20T17:48:49</td>
+  <td>DISK (D:) - File Explorer</td>
+  <td><span class="proc">explorer.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">da8d2c1448cf6e…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="56" onclick="showDetail(56)" style="cursor:pointer">
+  <td>2026-04-20T17:48:54</td>
+  <td>create a beautiful post for my linkdin about DevOps and why we need it m</td>
+  <td><span class="proc">firefox.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">2589f7e8a8be33…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="flag-row" data-idx="57" onclick="showDetail(57)" style="cursor:pointer">
+  <td>2026-04-20T17:48:59</td>
+  <td>C:\Windows\System32\cmd.exe - python  capture_snapshots.py</td>
+  <td><span class="proc">WindowsTerminal.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">cmd.exe, python</td>
+  <td class="mono">9d9a9bd50b7e0f…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="flag-row" data-idx="58" onclick="showDetail(58)" style="cursor:pointer">
+  <td>2026-04-20T17:49:09</td>
+  <td>C:\Windows\System32\cmd.exe - python  capture_snapshots.py</td>
+  <td><span class="proc">WindowsTerminal.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">cmd.exe, python</td>
+  <td class="mono">89785e15b83987…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="59" onclick="showDetail(59)" style="cursor:pointer">
+  <td>2026-04-21T14:41:56</td>
+  <td>Problem loading page — Mozilla Firefox</td>
+  <td><span class="proc">firefox.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">6a7274a32a904f…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="60" onclick="showDetail(60)" style="cursor:pointer">
+  <td>2026-04-21T14:42:16</td>
+  <td>Home - Google Drive — Mozilla Firefox</td>
+  <td><span class="proc">firefox.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">38213d475ea793…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="61" onclick="showDetail(61)" style="cursor:pointer">
+  <td>2026-04-21T14:42:26</td>
+  <td>Bin - Google Drive — Mozilla Firefox</td>
+  <td><span class="proc">firefox.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">de8e9c3e5d7a14…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="flag-row" data-idx="62" onclick="showDetail(62)" style="cursor:pointer">
+  <td>2026-04-21T14:42:37</td>
+  <td>C:\Windows\System32\cmd.exe - python  capture_snapshots.py --count 15 --</td>
+  <td><span class="proc">WindowsTerminal.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell">cmd.exe, python</td>
+  <td class="mono">e5e32b1c1d9507…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="63" onclick="showDetail(63)" style="cursor:pointer">
+  <td>2026-04-21T14:42:47</td>
+  <td>Network Concepts: IP, NAT, and DHCP - Google Gemini — Mozilla Firefox</td>
+  <td><span class="proc">firefox.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">a5780e128b92aa…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr>
+<tr class="" data-idx="64" onclick="showDetail(64)" style="cursor:pointer">
+  <td>2026-04-21T14:42:57</td>
+  <td>Network Concepts: IP, NAT, and DHCP - Google Gemini — Mozilla Firefox</td>
+  <td><span class="proc">firefox.exe</span></td>
+  <td><span class="no-url">—</span></td>
+  <td class="fg">✓</td>
+  <td class="flag-cell"></td>
+  <td class="mono">0f02fbaae14325…</td>
+  <td class="src">ImageStore (EXIF)</td>
+</tr></tbody>
+</table>
+</div>
+
+<footer>
+  RecallTimeline For authorized forensic use only.
+  Chain of custody must be maintained at all times.
+</footer>
+
+<script>
+const EVENTS = [{"timestamp": "2026-03-15T09:00:02", "windowTitle": "Google Chrome - Gmail", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://mail.google.com", "isForeground": "True", "snapshotId": "ba4d42b7-e7cb-b03c-bfc4-e47d48f65d18", "appId": "App_chrome_exe", "ocrText": "Legal document review - privileged", "filename": "ba4d42b7-e7cb-b03c-bfc4-e47d48f65d18.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: ba4d42b7-e7cb-b03c-bfc4-e47d48f65d18.jpg modified 2026-03-15T09:00:02"}, {"timestamp": "2026-03-15T09:01:19", "windowTitle": "Microsoft Word - Document1", "processPath": "C:\\Program Files\\WINWORD.EXE", "url": "", "isForeground": "True", "snapshotId": "bcd52bdb-fb90-35fa-adec-ebb5f9bd31d0", "appId": "App_WINWORD_EXE", "ocrText": "Network topology diagram discussion", "filename": "bcd52bdb-fb90-35fa-adec-ebb5f9bd31d0.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: bcd52bdb-fb90-35fa-adec-ebb5f9bd31d0.jpg modified 2026-03-15T09:01:19"}, {"timestamp": "2026-03-15T09:01:49", "windowTitle": "File Explorer - Documents", "processPath": "C:\\Windows\\System32\\explorer.exe", "url": "", "isForeground": "True", "snapshotId": "b16bfa01-f5a8-3ffa-c621-cf2a97edeef9", "appId": "App_explorer_exe", "ocrText": "Network topology diagram discussion", "filename": "b16bfa01-f5a8-3ffa-c621-cf2a97edeef9.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: b16bfa01-f5a8-3ffa-c621-cf2a97edeef9.jpg modified 2026-03-15T09:01:49"}, {"timestamp": "2026-03-15T09:03:04", "windowTitle": "Visual Studio Code - project", "processPath": "C:\\Windows\\System32\\Code.exe", "url": "", "isForeground": "True", "snapshotId": "c37bd5fb-91ac-bd7a-50d6-bfff2cf8b8eb", "appId": "App_Code_exe", "ocrText": "Legal document review - privileged", "filename": "c37bd5fb-91ac-bd7a-50d6-bfff2cf8b8eb.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: c37bd5fb-91ac-bd7a-50d6-bfff2cf8b8eb.jpg modified 2026-03-15T09:03:04"}, {"timestamp": "2026-03-15T09:03:37", "windowTitle": "Task Manager", "processPath": "C:\\Windows\\System32\\Taskmgr.exe", "url": "", "isForeground": "True", "snapshotId": "fc37c94f-d4fd-0193-85ab-1a8aaaeabbbf", "appId": "App_Taskmgr_exe", "ocrText": "CONFIDENTIAL - For internal use only", "filename": "fc37c94f-d4fd-0193-85ab-1a8aaaeabbbf.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "confidential, taskmgr", "flagReasons": "File/window marked CONFIDENTIAL — possible sensitive data access | Task Manager opened — possible process termination/hiding attempt", "source": "ukg.db", "autopsy": "FS match: fc37c94f-d4fd-0193-85ab-1a8aaaeabbbf.jpg modified 2026-03-15T09:03:37"}, {"timestamp": "2026-03-15T09:04:54", "windowTitle": "Command Prompt", "processPath": "C:\\Windows\\System32\\cmd.exe", "url": "", "isForeground": "True", "snapshotId": "dbc0d1cc-d228-e8cc-42c3-e7a1aad6fa6b", "appId": "App_cmd_exe", "ocrText": "Private key backup: -----BEGIN RSA PRIVATE KEY-----", "filename": "dbc0d1cc-d228-e8cc-42c3-e7a1aad6fa6b.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "private, cmd.exe", "flagReasons": "File/window marked PRIVATE — restricted data indicator | Windows Command Prompt (cmd.exe) — command execution detected", "source": "ukg.db", "autopsy": "FS match: dbc0d1cc-d228-e8cc-42c3-e7a1aad6fa6b.jpg modified 2026-03-15T09:04:54"}, {"timestamp": "2026-03-15T09:06:13", "windowTitle": "Windows PowerShell", "processPath": "C:\\Windows\\System32\\powershell.exe", "url": "", "isForeground": "True", "snapshotId": "728e2e99-eb00-a70c-ccc1-e0f7f711fefb", "appId": "App_powershell_exe", "ocrText": "Project timeline and deliverables for Q1 2026", "filename": "728e2e99-eb00-a70c-ccc1-e0f7f711fefb.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "powershell", "flagReasons": "PowerShell execution detected — scripting/admin activity", "source": "ukg.db", "autopsy": "FS match: 728e2e99-eb00-a70c-ccc1-e0f7f711fefb.jpg modified 2026-03-15T09:06:13"}, {"timestamp": "2026-03-15T09:06:15", "windowTitle": "Notepad - Untitled", "processPath": "C:\\Windows\\System32\\notepad.exe", "url": "", "isForeground": "False", "snapshotId": "4bb38b6e-55c4-4614-b7cb-f8b29fa420cd", "appId": "App_notepad_exe", "ocrText": "Project timeline and deliverables for Q1 2026", "filename": "4bb38b6e-55c4-4614-b7cb-f8b29fa420cd.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "burst_activity", "flagReasons": "Consecutive events < 5 seconds apart — possible automated activity", "source": "ukg.db", "autopsy": "FS match: 4bb38b6e-55c4-4614-b7cb-f8b29fa420cd.jpg modified 2026-03-15T09:06:15"}, {"timestamp": "2026-03-15T09:06:47", "windowTitle": "Dropbox - Upload", "processPath": "C:\\Windows\\System32\\Dropbox.exe", "url": "https://dropbox.com/upload", "isForeground": "True", "snapshotId": "e3d7f3b6-eda9-db2d-3b1a-db0b9cfc1cb5", "appId": "App_Dropbox_exe", "ocrText": "Project timeline and deliverables for Q1 2026", "filename": "e3d7f3b6-eda9-db2d-3b1a-db0b9cfc1cb5.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "upload, dropbox", "flagReasons": "Upload action detected — data being sent externally | Dropbox detected — cloud file sync/share platform", "source": "ukg.db", "autopsy": "FS match: e3d7f3b6-eda9-db2d-3b1a-db0b9cfc1cb5.jpg modified 2026-03-15T09:06:47"}, {"timestamp": "2026-03-15T09:07:33", "windowTitle": "PuTTY Configuration", "processPath": "C:\\Windows\\System32\\putty.exe", "url": "", "isForeground": "True", "snapshotId": "b597cfaf-6aae-d015-b2cf-5c6c6fdcb774", "appId": "App_putty_exe", "ocrText": "Database connection string: Server=prod-db;User=admin;Password=Pass123!", "filename": "b597cfaf-6aae-d015-b2cf-5c6c6fdcb774.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: b597cfaf-6aae-d015-b2cf-5c6c6fdcb774.jpg modified 2026-03-15T09:07:33"}, {"timestamp": "2026-03-15T09:07:47", "windowTitle": "Chrome - Pastebin", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://pastebin.com/raw/abc123", "isForeground": "True", "snapshotId": "3bb83aa9-853c-d49c-9d5e-79ac036ae746", "appId": "App_chrome_exe", "ocrText": "VPN configuration export file", "filename": "3bb83aa9-853c-d49c-9d5e-79ac036ae746.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "export, pastebin", "flagReasons": "Export action detected — data being copied/exported | Pastebin.com detected — common code/data leak platform", "source": "ukg.db", "autopsy": "FS match: 3bb83aa9-853c-d49c-9d5e-79ac036ae746.jpg modified 2026-03-15T09:07:47"}, {"timestamp": "2026-03-15T09:08:13", "windowTitle": "Chrome - GitHub", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://github.com", "isForeground": "True", "snapshotId": "eaa0d8a6-ed45-6e3a-a4ac-a915ba809f1b", "appId": "App_chrome_exe", "ocrText": "Code review comments and suggestions", "filename": "eaa0d8a6-ed45-6e3a-a4ac-a915ba809f1b.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: eaa0d8a6-ed45-6e3a-a4ac-a915ba809f1b.jpg modified 2026-03-15T09:08:13"}, {"timestamp": "2026-03-15T09:09:07", "windowTitle": "Microsoft Outlook", "processPath": "C:\\Program Files\\OUTLOOK.EXE", "url": "", "isForeground": "True", "snapshotId": "c3ebdb6c-1ffe-e401-937c-c6b90d5bbe97", "appId": "App_OUTLOOK_EXE", "ocrText": "Username: admin Password: secret123", "filename": "c3ebdb6c-1ffe-e401-937c-c6b90d5bbe97.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "secret", "flagReasons": "File/window contains 'secret' — possible sensitive data access", "source": "ukg.db", "autopsy": "FS match: c3ebdb6c-1ffe-e401-937c-c6b90d5bbe97.jpg modified 2026-03-15T09:09:07"}, {"timestamp": "2026-03-15T09:10:23", "windowTitle": "Registry Editor", "processPath": "C:\\Windows\\System32\\regedit.exe", "url": "", "isForeground": "True", "snapshotId": "16ee35cb-e9ac-5df0-c9f2-9fb429e5c33d", "appId": "App_regedit_exe", "ocrText": "Private key backup: -----BEGIN RSA PRIVATE KEY-----", "filename": "16ee35cb-e9ac-5df0-c9f2-9fb429e5c33d.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "private, regedit", "flagReasons": "File/window marked PRIVATE — restricted data indicator | Registry Editor detected — system configuration modification", "source": "ukg.db", "autopsy": "FS match: 16ee35cb-e9ac-5df0-c9f2-9fb429e5c33d.jpg modified 2026-03-15T09:10:23"}, {"timestamp": "2026-03-15T09:10:24", "windowTitle": "Adobe Acrobat Reader", "processPath": "C:\\Windows\\System32\\AcroRd32.exe", "url": "", "isForeground": "False", "snapshotId": "46fca5cc-9b78-25a6-28ec-bc72fa15b670", "appId": "App_AcroRd32_exe", "ocrText": "Database connection string: Server=prod-db;User=admin;Password=Pass123!", "filename": "46fca5cc-9b78-25a6-28ec-bc72fa15b670.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "burst_activity", "flagReasons": "Consecutive events < 5 seconds apart — possible automated activity", "source": "ukg.db", "autopsy": "FS match: 46fca5cc-9b78-25a6-28ec-bc72fa15b670.jpg modified 2026-03-15T09:10:24"}, {"timestamp": "2026-03-15T09:11:43", "windowTitle": "Excel - CONFIDENTIAL_Q1.xlsx", "processPath": "C:\\Program Files\\EXCEL.EXE", "url": "", "isForeground": "True", "snapshotId": "7f6b83a4-bdf9-8199-6aa3-1ac28a2b1bec", "appId": "App_EXCEL_EXE", "ocrText": "Security audit findings report", "filename": "7f6b83a4-bdf9-8199-6aa3-1ac28a2b1bec.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "confidential", "flagReasons": "File/window marked CONFIDENTIAL — possible sensitive data access", "source": "ukg.db", "autopsy": "FS match: 7f6b83a4-bdf9-8199-6aa3-1ac28a2b1bec.jpg modified 2026-03-15T09:11:43"}, {"timestamp": "2026-03-15T09:11:49", "windowTitle": "MEGAsync - Upload", "processPath": "C:\\Windows\\System32\\MEGAsync.exe", "url": "https://mega.nz/folder/abc", "isForeground": "True", "snapshotId": "fc88befa-ccc6-4dc9-e20e-fbacf88f2ab4", "appId": "App_MEGAsync_exe", "ocrText": "Code review comments and suggestions", "filename": "fc88befa-ccc6-4dc9-e20e-fbacf88f2ab4.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "upload, mega.nz", "flagReasons": "Upload action detected — data being sent externally | MEGA cloud storage detected — known data exfiltration platform", "source": "ukg.db", "autopsy": "FS match: fc88befa-ccc6-4dc9-e20e-fbacf88f2ab4.jpg modified 2026-03-15T09:11:49"}, {"timestamp": "2026-03-15T09:11:58", "windowTitle": "Word - secret_strategy.docx", "processPath": "C:\\Program Files\\WINWORD.EXE", "url": "", "isForeground": "True", "snapshotId": "a4474ffd-7cfd-afed-eacc-f4e0ac7c17e8", "appId": "App_WINWORD_EXE", "ocrText": "Network topology diagram discussion", "filename": "a4474ffd-7cfd-afed-eacc-f4e0ac7c17e8.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "secret", "flagReasons": "File/window contains 'secret' — possible sensitive data access", "source": "ukg.db", "autopsy": "FS match: a4474ffd-7cfd-afed-eacc-f4e0ac7c17e8.jpg modified 2026-03-15T09:11:58"}, {"timestamp": "2026-03-15T09:13:30", "windowTitle": "Chrome - YouTube", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://youtube.com", "isForeground": "True", "snapshotId": "dbc028a3-7de4-6ebf-9abf-41a6bf7323a8", "appId": "App_chrome_exe", "ocrText": "Bank account details: 1234-5678-9012-3456", "filename": "dbc028a3-7de4-6ebf-9abf-41a6bf7323a8.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: dbc028a3-7de4-6ebf-9abf-41a6bf7323a8.jpg modified 2026-03-15T09:13:30"}, {"timestamp": "2026-03-15T09:14:11", "windowTitle": "Slack - General", "processPath": "C:\\Windows\\System32\\slack.exe", "url": "", "isForeground": "True", "snapshotId": "ac13cf8e-5ce6-df27-874c-d4bbfe0fbd5a", "appId": "App_slack_exe", "ocrText": "API Key: sk-1234567890abcdef", "filename": "ac13cf8e-5ce6-df27-874c-d4bbfe0fbd5a.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: ac13cf8e-5ce6-df27-874c-d4bbfe0fbd5a.jpg modified 2026-03-15T09:14:11"}, {"timestamp": "2026-03-15T09:14:42", "windowTitle": "Microsoft Teams", "processPath": "C:\\Windows\\System32\\Teams.exe", "url": "", "isForeground": "True", "snapshotId": "5d3864c3-1aab-6be9-cd0a-dcc4ef5cda74", "appId": "App_Teams_exe", "ocrText": "Meeting notes - product launch strategy", "filename": "5d3864c3-1aab-6be9-cd0a-dcc4ef5cda74.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: 5d3864c3-1aab-6be9-cd0a-dcc4ef5cda74.jpg modified 2026-03-15T09:14:42"}, {"timestamp": "2026-03-15T09:14:45", "windowTitle": "Chrome - LinkedIn", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://linkedin.com", "isForeground": "True", "snapshotId": "364deee5-bd82-3862-e7a1-ef38ff5fefd8", "appId": "App_chrome_exe", "ocrText": "Username: admin Password: secret123", "filename": "364deee5-bd82-3862-e7a1-ef38ff5fefd8.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "secret, burst_activity", "flagReasons": "File/window contains 'secret' — possible sensitive data access | Consecutive events < 5 seconds apart — possible automated activity", "source": "ukg.db", "autopsy": "FS match: 364deee5-bd82-3862-e7a1-ef38ff5fefd8.jpg modified 2026-03-15T09:14:45"}, {"timestamp": "2026-03-15T09:16:00", "windowTitle": "Paint - Untitled", "processPath": "C:\\Windows\\System32\\mspaint.exe", "url": "", "isForeground": "False", "snapshotId": "064bbda5-9e1e-ba12-0d8d-a29c0d5befa6", "appId": "App_mspaint_exe", "ocrText": "Employee salary data for department", "filename": "064bbda5-9e1e-ba12-0d8d-a29c0d5befa6.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: 064bbda5-9e1e-ba12-0d8d-a29c0d5befa6.jpg modified 2026-03-15T09:16:00"}, {"timestamp": "2026-03-15T09:17:02", "windowTitle": "Calculator", "processPath": "C:\\Windows\\System32\\Calculator.exe", "url": "", "isForeground": "True", "snapshotId": "01aae15b-46b2-5b9e-8bbe-c431d0a6cd4c", "appId": "App_Calculator_exe", "ocrText": "Code review comments and suggestions", "filename": "01aae15b-46b2-5b9e-8bbe-c431d0a6cd4c.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: 01aae15b-46b2-5b9e-8bbe-c431d0a6cd4c.jpg modified 2026-03-15T09:17:02"}, {"timestamp": "2026-03-15T09:18:14", "windowTitle": "Notepad++ - notes.txt", "processPath": "C:\\Windows\\System32\\notepad++.exe", "url": "", "isForeground": "True", "snapshotId": "ea8cde54-ce83-ac47-d41b-5abda6abd7c4", "appId": "App_notepad++_exe", "ocrText": "API Key: sk-1234567890abcdef", "filename": "ea8cde54-ce83-ac47-d41b-5abda6abd7c4.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: ea8cde54-ce83-ac47-d41b-5abda6abd7c4.jpg modified 2026-03-15T09:18:14"}, {"timestamp": "2026-03-15T09:18:56", "windowTitle": "Chrome - AWS Console", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://console.aws.amazon.com", "isForeground": "True", "snapshotId": "ab9c6fa3-ec54-264f-6ccf-f929bfbb67b2", "appId": "App_chrome_exe", "ocrText": "Private key backup: -----BEGIN RSA PRIVATE KEY-----", "filename": "ab9c6fa3-ec54-264f-6ccf-f929bfbb67b2.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "private", "flagReasons": "File/window marked PRIVATE — restricted data indicator", "source": "ukg.db", "autopsy": "FS match: ab9c6fa3-ec54-264f-6ccf-f929bfbb67b2.jpg modified 2026-03-15T09:18:56"}, {"timestamp": "2026-03-15T09:20:01", "windowTitle": "Windows Terminal", "processPath": "C:\\Windows\\System32\\wt.exe", "url": "", "isForeground": "True", "snapshotId": "6c3c5315-84e6-d429-94b4-6278c06d6edf", "appId": "App_wt_exe", "ocrText": "Username: admin Password: secret123", "filename": "6c3c5315-84e6-d429-94b4-6278c06d6edf.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "secret", "flagReasons": "File/window contains 'secret' — possible sensitive data access", "source": "ukg.db", "autopsy": "FS match: 6c3c5315-84e6-d429-94b4-6278c06d6edf.jpg modified 2026-03-15T09:20:01"}, {"timestamp": "2026-03-15T09:20:52", "windowTitle": "Chrome - Google Drive", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://drive.google.com", "isForeground": "True", "snapshotId": "519b80e4-d248-8ebf-bea4-13cf37c1cbe8", "appId": "App_chrome_exe", "ocrText": "Code review comments and suggestions", "filename": "519b80e4-d248-8ebf-bea4-13cf37c1cbe8.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: 519b80e4-d248-8ebf-bea4-13cf37c1cbe8.jpg modified 2026-03-15T09:20:52"}, {"timestamp": "2026-03-15T09:20:54", "windowTitle": "Excel - Budget_2026.xlsx", "processPath": "C:\\Program Files\\EXCEL.EXE", "url": "", "isForeground": "True", "snapshotId": "a4e5b171-ae1f-6efa-b2b9-38ec74e69783", "appId": "App_EXCEL_EXE", "ocrText": "Legal document review - privileged", "filename": "a4e5b171-ae1f-6efa-b2b9-38ec74e69783.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "burst_activity", "flagReasons": "Consecutive events < 5 seconds apart — possible automated activity", "source": "ukg.db", "autopsy": "FS match: a4e5b171-ae1f-6efa-b2b9-38ec74e69783.jpg modified 2026-03-15T09:20:54"}, {"timestamp": "2026-03-15T09:22:24", "windowTitle": "Chrome - Twitter", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://twitter.com", "isForeground": "True", "snapshotId": "3af85dd5-8cbd-5238-6ee5-3efdb06d4e42", "appId": "App_chrome_exe", "ocrText": "Server credentials: root/toor", "filename": "3af85dd5-8cbd-5238-6ee5-3efdb06d4e42.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: 3af85dd5-8cbd-5238-6ee5-3efdb06d4e42.jpg modified 2026-03-15T09:22:24"}, {"timestamp": "2026-03-15T09:23:32", "windowTitle": "Word - employee_review.docx", "processPath": "C:\\Program Files\\WINWORD.EXE", "url": "", "isForeground": "True", "snapshotId": "a84b5c47-cb9e-5ac3-c23f-3b08eaf11301", "appId": "App_WINWORD_EXE", "ocrText": "API Key: sk-1234567890abcdef", "filename": "a84b5c47-cb9e-5ac3-c23f-3b08eaf11301.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: a84b5c47-cb9e-5ac3-c23f-3b08eaf11301.jpg modified 2026-03-15T09:23:32"}, {"timestamp": "2026-03-15T09:24:34", "windowTitle": "Chrome - NetBanking", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://netbanking.example.com", "isForeground": "True", "snapshotId": "982f33f9-cee0-ea8b-cf8c-9ac29f41aec4", "appId": "App_chrome_exe", "ocrText": "Employee salary data for department", "filename": "982f33f9-cee0-ea8b-cf8c-9ac29f41aec4.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: 982f33f9-cee0-ea8b-cf8c-9ac29f41aec4.jpg modified 2026-03-15T09:24:34"}, {"timestamp": "2026-03-15T09:24:43", "windowTitle": "Chrome - Facebook", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://facebook.com", "isForeground": "True", "snapshotId": "aefe89f1-4633-acd7-de9e-a75c3acffc30", "appId": "App_chrome_exe", "ocrText": "Username: admin Password: secret123", "filename": "aefe89f1-4633-acd7-de9e-a75c3acffc30.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "secret", "flagReasons": "File/window contains 'secret' — possible sensitive data access", "source": "ukg.db", "autopsy": "FS match: aefe89f1-4633-acd7-de9e-a75c3acffc30.jpg modified 2026-03-15T09:24:43"}, {"timestamp": "2026-03-15T09:25:18", "windowTitle": "Chrome - Reddit", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://reddit.com", "isForeground": "True", "snapshotId": "1cdceda3-cdca-fd9a-ee51-ccfeb0fa5f2d", "appId": "App_chrome_exe", "ocrText": "Username: admin Password: secret123", "filename": "1cdceda3-cdca-fd9a-ee51-ccfeb0fa5f2d.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "secret", "flagReasons": "File/window contains 'secret' — possible sensitive data access", "source": "ukg.db", "autopsy": "FS match: 1cdceda3-cdca-fd9a-ee51-ccfeb0fa5f2d.jpg modified 2026-03-15T09:25:18"}, {"timestamp": "2026-03-15T09:25:22", "windowTitle": "VLC Media Player", "processPath": "C:\\Windows\\System32\\vlc.exe", "url": "", "isForeground": "True", "snapshotId": "accadb7b-afcf-c593-c611-f3c34eea1ab7", "appId": "App_vlc_exe", "ocrText": "Code review comments and suggestions", "filename": "accadb7b-afcf-c593-c611-f3c34eea1ab7.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "burst_activity", "flagReasons": "Consecutive events < 5 seconds apart — possible automated activity", "source": "ukg.db", "autopsy": "FS match: accadb7b-afcf-c593-c611-f3c34eea1ab7.jpg modified 2026-03-15T09:25:22"}, {"timestamp": "2026-03-15T09:25:25", "windowTitle": "7-Zip File Manager", "processPath": "C:\\Windows\\System32\\7zFM.exe", "url": "", "isForeground": "True", "snapshotId": "8b01dae3-f1d7-2803-d9c6-0b4f5bfffc45", "appId": "App_7zFM_exe", "ocrText": "CONFIDENTIAL - For internal use only", "filename": "8b01dae3-f1d7-2803-d9c6-0b4f5bfffc45.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "confidential, burst_activity", "flagReasons": "File/window marked CONFIDENTIAL — possible sensitive data access | Consecutive events < 5 seconds apart — possible automated activity", "source": "ukg.db", "autopsy": "FS match: 8b01dae3-f1d7-2803-d9c6-0b4f5bfffc45.jpg modified 2026-03-15T09:25:25"}, {"timestamp": "2026-03-15T09:26:31", "windowTitle": "Chrome - Pastebin Raw", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://pastebin.com/raw/xyz789", "isForeground": "True", "snapshotId": "dace57d6-cdee-65a6-a9eb-d6b5a565e67b", "appId": "App_chrome_exe", "ocrText": "API Key: sk-1234567890abcdef", "filename": "dace57d6-cdee-65a6-a9eb-d6b5a565e67b.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "pastebin", "flagReasons": "Pastebin.com detected — common code/data leak platform", "source": "ukg.db", "autopsy": "FS match: dace57d6-cdee-65a6-a9eb-d6b5a565e67b.jpg modified 2026-03-15T09:26:31"}, {"timestamp": "2026-03-15T09:27:05", "windowTitle": "PowerShell - Admin", "processPath": "C:\\Windows\\System32\\powershell.exe", "url": "", "isForeground": "True", "snapshotId": "ed2bcb69-573a-1adc-5ef0-a28ec9b425fc", "appId": "App_powershell_exe", "ocrText": "CONFIDENTIAL - For internal use only", "filename": "ed2bcb69-573a-1adc-5ef0-a28ec9b425fc.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "confidential, powershell", "flagReasons": "File/window marked CONFIDENTIAL — possible sensitive data access | PowerShell execution detected — scripting/admin activity", "source": "ukg.db", "autopsy": "FS match: ed2bcb69-573a-1adc-5ef0-a28ec9b425fc.jpg modified 2026-03-15T09:27:05"}, {"timestamp": "2026-03-15T09:28:02", "windowTitle": "Chrome - Dropbox", "processPath": "C:\\Windows\\System32\\chrome.exe", "url": "https://dropbox.com", "isForeground": "True", "snapshotId": "af102b11-31f8-2292-5ddf-24bfcddaaef3", "appId": "App_chrome_exe", "ocrText": "Legal document review - privileged", "filename": "af102b11-31f8-2292-5ddf-24bfcddaaef3.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "dropbox", "flagReasons": "Dropbox detected — cloud file sync/share platform", "source": "ukg.db", "autopsy": "FS match: af102b11-31f8-2292-5ddf-24bfcddaaef3.jpg modified 2026-03-15T09:28:02"}, {"timestamp": "2026-03-15T09:30:01", "windowTitle": "Zoom Meeting", "processPath": "C:\\Windows\\System32\\Zoom.exe", "url": "", "isForeground": "True", "snapshotId": "ee3b9e6e-9cb1-520b-717c-a8eb6c0550f4", "appId": "App_Zoom_exe", "ocrText": "Server credentials: root/toor", "filename": "ee3b9e6e-9cb1-520b-717c-a8eb6c0550f4.jpg", "fileSize": 0, "sha256": "", "mtime": "", "ctime": "", "flags": "", "flagReasons": "", "source": "ukg.db", "autopsy": "FS match: ee3b9e6e-9cb1-520b-717c-a8eb6c0550f4.jpg modified 2026-03-15T09:30:01"}, {"timestamp": "2026-03-15T13:45:00", "windowTitle": "Inbox - Microsoft Outlook", "processPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\OUTLOOK.EXE", "url": "", "isForeground": "true", "snapshotId": "snap_001", "appId": "outlook", "ocrText": "", "filename": "recall_20260315_134500_000.jpg", "fileSize": 33680, "sha256": "66b97e4b8756fef88b2b63c8150095c96fd089cef9347b1ca3783d24e427b372", "mtime": "2026-03-31T17:12:55.001247", "ctime": "2026-03-31T17:12:54.987678", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260315_134500_000.jpg modified 2026-03-15T13:45:00"}, {"timestamp": "2026-03-15T13:45:45", "windowTitle": "Q1_Financial_Report_CONFIDENTIAL.xlsx - Excel", "processPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE", "url": "", "isForeground": "true", "snapshotId": "snap_002", "appId": "excel", "ocrText": "", "filename": "recall_20260315_134545_001.jpg", "fileSize": 33696, "sha256": "76ba14c6dcf0cc4a8d1a6530f4f5d1433906ba40de8ed70c4ebca860e271060c", "mtime": "2026-03-31T17:12:55.023135", "ctime": "2026-03-31T17:12:55.014711", "flags": "confidential", "flagReasons": "File/window marked CONFIDENTIAL — possible sensitive data access", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260315_134545_001.jpg modified 2026-03-15T13:45:45"}, {"timestamp": "2026-03-15T13:46:30", "windowTitle": "Q1_Financial_Report_CONFIDENTIAL.xlsx - Excel", "processPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE", "url": "", "isForeground": "true", "snapshotId": "snap_003", "appId": "excel", "ocrText": "", "filename": "recall_20260315_134630_002.jpg", "fileSize": 33696, "sha256": "4c299581a69605720939ce5495b52304a00c99052a42dba81c0c9d4904e1195e", "mtime": "2026-03-31T17:12:55.041292", "ctime": "2026-03-31T17:12:55.027991", "flags": "confidential", "flagReasons": "File/window marked CONFIDENTIAL — possible sensitive data access", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260315_134630_002.jpg modified 2026-03-15T13:46:30"}, {"timestamp": "2026-03-15T13:47:30", "windowTitle": "secret_strategy_2026.docx - Word", "processPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE", "url": "", "isForeground": "true", "snapshotId": "snap_004", "appId": "word", "ocrText": "", "filename": "recall_20260315_134730_003.jpg", "fileSize": 33684, "sha256": "00dc6a55826d1abcb40a72f16e68730c12557b3e50e1cb8d18f6ca989d310867", "mtime": "2026-03-31T17:12:55.057672", "ctime": "2026-03-31T17:12:55.045021", "flags": "secret", "flagReasons": "File/window contains 'secret' — possible sensitive data access", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260315_134730_003.jpg modified 2026-03-15T13:47:30"}, {"timestamp": "2026-03-15T13:48:40", "windowTitle": "File Transfer - Mega", "processPath": "C:\\Users\\jsmith\\AppData\\Local\\MEGAsync\\MEGAsync.exe", "url": "https://mega.nz/folder/xYzAbCdE#upload", "isForeground": "true", "snapshotId": "snap_005", "appId": "megasync", "ocrText": "", "filename": "recall_20260315_134840_004.jpg", "fileSize": 33707, "sha256": "7c2901f19b32b15407f1c363a01815b4755881575c31ec94afdc89c234d9bd58", "mtime": "2026-03-31T17:12:55.071205", "ctime": "2026-03-31T17:12:55.060189", "flags": "upload, transfer, mega.nz", "flagReasons": "Upload action detected — data being sent externally | Transfer action detected — data movement indicator | MEGA cloud storage detected — known data exfiltration platform", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260315_134840_004.jpg modified 2026-03-15T13:48:40"}, {"timestamp": "2026-03-15T13:48:44", "windowTitle": "File Transfer - Mega", "processPath": "C:\\Users\\jsmith\\AppData\\Local\\MEGAsync\\MEGAsync.exe", "url": "https://mega.nz/folder/xYzAbCdE#upload", "isForeground": "true", "snapshotId": "snap_006", "appId": "megasync", "ocrText": "", "filename": "recall_20260315_134844_005.jpg", "fileSize": 33707, "sha256": "4bdce7de0af2b2bb6f3b0541444fc450d6eab278fb66e084e5995bd3e53b766c", "mtime": "2026-03-31T17:12:55.087131", "ctime": "2026-03-31T17:12:55.079561", "flags": "upload, transfer, mega.nz, burst_activity", "flagReasons": "Upload action detected — data being sent externally | Transfer action detected — data movement indicator | MEGA cloud storage detected — known data exfiltration platform | Consecutive events < 5 seconds apart — possible automated activity", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260315_134844_005.jpg modified 2026-03-15T13:48:44"}, {"timestamp": "2026-03-15T13:48:48", "windowTitle": "File Transfer - Mega (Upload Complete)", "processPath": "C:\\Users\\jsmith\\AppData\\Local\\MEGAsync\\MEGAsync.exe", "url": "https://mega.nz/folder/xYzAbCdE#upload", "isForeground": "true", "snapshotId": "snap_007", "appId": "megasync", "ocrText": "", "filename": "recall_20260315_134848_006.jpg", "fileSize": 33725, "sha256": "452844a8171533d91558c1382254bbedd11c31ef5d74dee63af52fed27fff082", "mtime": "2026-03-31T17:12:55.104043", "ctime": "2026-03-31T17:12:55.094504", "flags": "upload, transfer, mega.nz, burst_activity", "flagReasons": "Upload action detected — data being sent externally | Transfer action detected — data movement indicator | MEGA cloud storage detected — known data exfiltration platform | Consecutive events < 5 seconds apart — possible automated activity", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260315_134848_006.jpg modified 2026-03-15T13:48:48"}, {"timestamp": "2026-03-15T13:50:10", "windowTitle": "Administrator: Windows PowerShell", "processPath": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "url": "", "isForeground": "true", "snapshotId": "snap_008", "appId": "powershell", "ocrText": "", "filename": "recall_20260315_135010_007.jpg", "fileSize": 33689, "sha256": "932ea2662490234d8fed08886aa5587f25d98838255130bcf54c26bd6219db57", "mtime": "2026-03-31T17:12:55.118820", "ctime": "2026-03-31T17:12:55.111792", "flags": "powershell", "flagReasons": "PowerShell execution detected — scripting/admin activity", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260315_135010_007.jpg modified 2026-03-15T13:50:10"}, {"timestamp": "2026-03-15T13:51:20", "windowTitle": "Inbox - Microsoft Outlook", "processPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\OUTLOOK.EXE", "url": "", "isForeground": "true", "snapshotId": "snap_009", "appId": "outlook", "ocrText": "", "filename": "recall_20260315_135120_008.jpg", "fileSize": 33680, "sha256": "c07d4e24a0ab7174169c30a5cfce9b08c69fd952f81aecaebf3fae0cd4895fba", "mtime": "2026-03-31T17:12:55.134814", "ctime": "2026-03-31T17:12:55.123803", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260315_135120_008.jpg modified 2026-03-15T13:51:20"}, {"timestamp": "2026-03-15T13:52:20", "windowTitle": "Google Chrome", "processPath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", "url": "https://www.linkedin.com/jobs/", "isForeground": "true", "snapshotId": "snap_010", "appId": "chrome", "ocrText": "", "filename": "recall_20260315_135220_009.jpg", "fileSize": 33691, "sha256": "d3c0816726fbe3c4fb984a94eca32c5edbbbc1d46962a2f44a685b20951bd7e7", "mtime": "2026-03-31T17:12:55.140642", "ctime": "2026-03-31T17:12:55.140642", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260315_135220_009.jpg modified 2026-03-15T13:52:20"}, {"timestamp": "2026-04-20T17:48:23", "windowTitle": "create a beautiful post for my linkdin about DevOps and why we need it must be... — Mozilla Firefox", "processPath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0001", "appId": "firefox", "ocrText": "", "filename": "recall_20260420_174823_001.jpg", "fileSize": 226101, "sha256": "504c946d310e11a1f4eacdf82bcec05ea84d5228d9e564d3570ddb68d109c13c", "mtime": "2026-04-20T17:48:23.590897", "ctime": "2026-04-21T14:35:56.059105", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260420_174823_001.jpg modified 2026-04-20T17:48:23"}, {"timestamp": "2026-04-20T17:48:28", "windowTitle": "Using Timeshift for System's Snapshots and Recovery on Debian 12 via Command Line - DEV Community — Mozilla Firefox", "processPath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0002", "appId": "firefox", "ocrText": "", "filename": "recall_20260420_174828_002.jpg", "fileSize": 343480, "sha256": "f8006e6ee53196b876caabf5056c2547099a4eb86f32e39e4ace4ca2ac75062e", "mtime": "2026-04-20T17:48:28.678160", "ctime": "2026-04-21T14:35:56.105390", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260420_174828_002.jpg modified 2026-04-20T17:48:28"}, {"timestamp": "2026-04-20T17:48:33", "windowTitle": "DeepSeek - Into the Unknown — Mozilla Firefox", "processPath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0003", "appId": "firefox", "ocrText": "", "filename": "recall_20260420_174833_003.jpg", "fileSize": 97810, "sha256": "150710bc66dfe769102918c9c13b1072efa9bdefa793e8639cd8668e46abd889", "mtime": "2026-04-20T17:48:33.854580", "ctime": "2026-04-21T14:35:56.170519", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260420_174833_003.jpg modified 2026-04-20T17:48:33"}, {"timestamp": "2026-04-20T17:48:38", "windowTitle": "C:\\Windows\\System32\\cmd.exe - python  capture_snapshots.py", "processPath": "C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.10921.0_x64__8wekyb3d8bbwe\\WindowsTerminal.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0004", "appId": "windowsterminal", "ocrText": "", "filename": "recall_20260420_174838_004.jpg", "fileSize": 185120, "sha256": "02f6bf7bc83472df5d7175e506bab8807546c507d8033d3b84a660cf59b72089", "mtime": "2026-04-20T17:48:39.008378", "ctime": "2026-04-21T14:35:56.216439", "flags": "cmd.exe, python", "flagReasons": "Windows Command Prompt (cmd.exe) — command execution detected | Python interpreter running — script execution in terminal", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260420_174838_004.jpg modified 2026-04-20T17:48:38"}, {"timestamp": "2026-04-20T17:48:44", "windowTitle": "DFTT - File Explorer", "processPath": "C:\\Windows\\explorer.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0005", "appId": "explorer", "ocrText": "", "filename": "recall_20260420_174844_005.jpg", "fileSize": 142980, "sha256": "daf552a2d556e56508be0d631f4fec8d72f2b44f3a81524fb87ce393db10b0dc", "mtime": "2026-04-20T17:48:44.233431", "ctime": "2026-04-21T14:35:56.281847", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260420_174844_005.jpg modified 2026-04-20T17:48:44"}, {"timestamp": "2026-04-20T17:48:49", "windowTitle": "DISK (D:) - File Explorer", "processPath": "C:\\Windows\\explorer.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0006", "appId": "explorer", "ocrText": "", "filename": "recall_20260420_174849_006.jpg", "fileSize": 111827, "sha256": "da8d2c1448cf6ec4509f67a1c7bac534a3369d6d86a7bf169f0ad526a855a802", "mtime": "2026-04-20T17:48:49.376416", "ctime": "2026-04-21T14:35:56.345925", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260420_174849_006.jpg modified 2026-04-20T17:48:49"}, {"timestamp": "2026-04-20T17:48:54", "windowTitle": "create a beautiful post for my linkdin about DevOps and why we need it must be... — Mozilla Firefox", "processPath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0007", "appId": "firefox", "ocrText": "", "filename": "recall_20260420_174854_007.jpg", "fileSize": 239088, "sha256": "2589f7e8a8be3338507cd4570933cd936522f95801cd0efc40fc3c33aebed807", "mtime": "2026-04-20T17:48:54.559107", "ctime": "2026-04-21T14:35:56.391776", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260420_174854_007.jpg modified 2026-04-20T17:48:54"}, {"timestamp": "2026-04-20T17:48:59", "windowTitle": "C:\\Windows\\System32\\cmd.exe - python  capture_snapshots.py", "processPath": "C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.10921.0_x64__8wekyb3d8bbwe\\WindowsTerminal.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0008", "appId": "windowsterminal", "ocrText": "", "filename": "recall_20260420_174859_008.jpg", "fileSize": 282728, "sha256": "9d9a9bd50b7e0fbbb7ce78ad232b853e6d13a0369c74dd45d37980ce9a630633", "mtime": "2026-04-20T17:48:59.681986", "ctime": "2026-04-21T14:35:56.457294", "flags": "cmd.exe, python", "flagReasons": "Windows Command Prompt (cmd.exe) — command execution detected | Python interpreter running — script execution in terminal", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260420_174859_008.jpg modified 2026-04-20T17:48:59"}, {"timestamp": "2026-04-20T17:49:09", "windowTitle": "C:\\Windows\\System32\\cmd.exe - python  capture_snapshots.py", "processPath": "C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.10921.0_x64__8wekyb3d8bbwe\\WindowsTerminal.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0010", "appId": "windowsterminal", "ocrText": "", "filename": "recall_20260420_174909_010.jpg", "fileSize": 268605, "sha256": "89785e15b8398750cfa882b9f0e6ca718d0c511d3d5d139b81610c1b5d0aeda5", "mtime": "2026-04-20T17:49:09.960628", "ctime": "2026-04-21T14:35:56.568204", "flags": "cmd.exe, python", "flagReasons": "Windows Command Prompt (cmd.exe) — command execution detected | Python interpreter running — script execution in terminal", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260420_174909_010.jpg modified 2026-04-20T17:49:09"}, {"timestamp": "2026-04-21T14:41:56", "windowTitle": "Problem loading page — Mozilla Firefox", "processPath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0009", "appId": "firefox", "ocrText": "", "filename": "recall_20260421_144156_009.jpg", "fileSize": 108270, "sha256": "6a7274a32a904f0a97aaa22959dbb175f6e2ee2e11d1412718df60cc5f069814", "mtime": "2026-04-21T14:41:56.315427", "ctime": "2026-04-21T14:41:56.231880", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260421_144156_009.jpg modified 2026-04-21T14:41:56"}, {"timestamp": "2026-04-21T14:42:16", "windowTitle": "Home - Google Drive — Mozilla Firefox", "processPath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0011", "appId": "firefox", "ocrText": "", "filename": "recall_20260421_144216_011.jpg", "fileSize": 228844, "sha256": "38213d475ea7933bd82ba36e3a92dd5eaa23660b55b080ede6bf79d85bd7b535", "mtime": "2026-04-21T14:42:16.827867", "ctime": "2026-04-21T14:42:16.741607", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260421_144216_011.jpg modified 2026-04-21T14:42:16"}, {"timestamp": "2026-04-21T14:42:26", "windowTitle": "Bin - Google Drive — Mozilla Firefox", "processPath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0012", "appId": "firefox", "ocrText": "", "filename": "recall_20260421_144226_012.jpg", "fileSize": 138714, "sha256": "de8e9c3e5d7a142b43bbf6947a37a131959e2f67f143d05936219248aca95c70", "mtime": "2026-04-21T14:42:27.020704", "ctime": "2026-04-21T14:42:26.958163", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260421_144226_012.jpg modified 2026-04-21T14:42:26"}, {"timestamp": "2026-04-21T14:42:37", "windowTitle": "C:\\Windows\\System32\\cmd.exe - python  capture_snapshots.py --count 15 --interval 10 --output ./my_captures", "processPath": "C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.10921.0_x64__8wekyb3d8bbwe\\WindowsTerminal.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0013", "appId": "windowsterminal", "ocrText": "", "filename": "recall_20260421_144237_013.jpg", "fileSize": 222639, "sha256": "e5e32b1c1d9507e9e13f6042eb6135b758704bda0f106dfbad7478e376ddd20e", "mtime": "2026-04-21T14:42:37.159403", "ctime": "2026-04-21T14:42:37.138400", "flags": "cmd.exe, python", "flagReasons": "Windows Command Prompt (cmd.exe) — command execution detected | Python interpreter running — script execution in terminal", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260421_144237_013.jpg modified 2026-04-21T14:42:37"}, {"timestamp": "2026-04-21T14:42:47", "windowTitle": "Network Concepts: IP, NAT, and DHCP - Google Gemini — Mozilla Firefox", "processPath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0014", "appId": "firefox", "ocrText": "", "filename": "recall_20260421_144247_014.jpg", "fileSize": 219087, "sha256": "a5780e128b92aa52877e006c24c404a40d274310c3cff6285232fad484e3f622", "mtime": "2026-04-21T14:42:47.260161", "ctime": "2026-04-21T14:42:47.251204", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260421_144247_014.jpg modified 2026-04-21T14:42:47"}, {"timestamp": "2026-04-21T14:42:57", "windowTitle": "Network Concepts: IP, NAT, and DHCP - Google Gemini — Mozilla Firefox", "processPath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", "url": "", "isForeground": "true", "snapshotId": "snap_0015", "appId": "firefox", "ocrText": "", "filename": "recall_20260421_144257_015.jpg", "fileSize": 219217, "sha256": "0f02fbaae14325b04aea771c1eb6fb019a5962447f6c94261f5d7083e3a4e1cd", "mtime": "2026-04-21T14:42:57.354821", "ctime": "2026-04-21T14:42:57.345820", "flags": "", "flagReasons": "", "source": "ImageStore (EXIF)", "autopsy": "FS match: recall_20260421_144257_015.jpg modified 2026-04-21T14:42:57"}];
+const COLORS = ['#388bfd','#3fb950','#f85149','#e3b341','#a371f7','#f78166','#58a6ff','#56d364'];
+
+// ── Charts ────────────────────────────────────────────────────────
+const ctx1 = document.getElementById('actChart').getContext('2d');
+new Chart(ctx1, {type:'bar',data:{
+  labels:["2026-03-15T09", "2026-03-15T13", "2026-04-20T17", "2026-04-21T14"],
+  datasets:[{label:'Events',data:[40, 10, 9, 6],
+    backgroundColor:'rgba(56,139,253,.5)',borderColor:'rgba(56,139,253,1)',borderWidth:1}]
+},options:{responsive:true,plugins:{legend:{display:false}},
+  scales:{
+    x:{ticks:{color:'#8b949e',font:{size:9},maxRotation:30},grid:{color:'#21262d'}},
+    y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'},beginAtZero:true}
+  }
+}});
+
+const procMap={};
+document.querySelectorAll('#tb tr').forEach(r=>{
+  const p=r.cells[2].textContent.trim();
+  if(p) procMap[p]=(procMap[p]||0)+1;
+});
+const pL=Object.keys(procMap), pD=pL.map(k=>procMap[k]);
+new Chart(document.getElementById('pieChart').getContext('2d'),{
+  type:'doughnut',
+  data:{labels:pL,datasets:[{data:pD,
+    backgroundColor:COLORS.slice(0,pL.length),borderWidth:2,borderColor:'#161b22'}]},
+  options:{responsive:true,plugins:{legend:{display:false}},cutout:'58%'}
+});
+const leg=document.getElementById('pieLegend');
+pL.forEach((l,i)=>{
+  leg.innerHTML+=`<span><span class="leg-sq" style="background:${COLORS[i%COLORS.length]}"></span>${l} (${pD[i]})</span>`;
+});
+
+// ── Search & filter ───────────────────────────────────────────────
+let showFlaggedOnly=false;
+function filt(){
+  const q=document.getElementById('sb').value.toLowerCase();
+  let v=0;
+  document.querySelectorAll('#tb tr').forEach(r=>{
+    const flagged=r.classList.contains('flag-row');
+    const textMatch=!q||r.textContent.toLowerCase().includes(q);
+    const show=textMatch&&(!showFlaggedOnly||flagged);
+    r.classList.toggle('hidden',!show);
+    if(show)v++;
+  });
+  document.getElementById('cnt').textContent=v+' events';
+}
+function toggleFlagged(){
+  showFlaggedOnly=!showFlaggedOnly;
+  document.getElementById('btnFlagged').classList.toggle('active',showFlaggedOnly);
+  filt();
+}
+
+// ── Sort ──────────────────────────────────────────────────────────
+function srt(c){
+  const tb=document.getElementById('tb');
+  const rows=[...tb.querySelectorAll('tr')];
+  const asc=tb.dataset.c==c&&tb.dataset.d=='a';
+  rows.sort((a,b)=>{
+    const av=a.cells[c]?.textContent.trim()||'';
+    const bv=b.cells[c]?.textContent.trim()||'';
+    return asc?bv.localeCompare(av):av.localeCompare(bv);
+  });
+  tb.dataset.c=c; tb.dataset.d=asc?'d':'a';
+  rows.forEach(r=>tb.appendChild(r));
+}
+
+// ── Detail panel ─────────────────────────────────────────────────
+let currentIdx=null;
+function showDetail(idx){
+  const e=EVENTS[idx];
+  if(!e) return;
+
+  // De-select previous, select new
+  document.querySelectorAll('#tb tr.selected').forEach(r=>r.classList.remove('selected'));
+  const row=document.querySelector(`#tb tr[data-idx="${idx}"]`);
+  if(row) row.classList.add('selected');
+  currentIdx=idx;
+
+  // Build flag section
+  let flagHtml='';
+  if(e.flags){
+    const flagList=e.flags.split(',').map(f=>f.trim()).filter(Boolean);
+    const reasonList=e.flagReasons.split('|').map(r=>r.trim()).filter(Boolean);
+    flagList.forEach((f,i)=>{
+      const reason=reasonList[i]||'Suspicious keyword detected';
+      flagHtml+=`<div class="flag-block">
+        <div class="flag-name">⚑ ${f.toUpperCase()}</div>
+        <div class="flag-reason">${reason}</div>
+      </div>`;
+    });
+  } else {
+    flagHtml=`<div class="no-flags">✓ No suspicious indicators detected</div>`;
+  }
+
+  // URL section
+  let urlHtml='';
+  if(e.url){
+    urlHtml=`<div class="url-block"><a href="${e.url}" target="_blank">${e.url}</a></div>`;
+  } else {
+    urlHtml=`<div class="url-none">No URL recorded for this event.</div>
+    <div class="url-why">
+      URLs are only captured when the active window is a web browser and
+      Windows Recall can read the address bar. For non-browser applications
+      (File Explorer, Terminal, Office) no URL is stored — this is expected
+      behaviour, not a data loss issue.
+    </div>`;
+  }
+
+  // Autopsy section
+  const autopsyHtml = e.autopsy
+    ? `<div class="corr-block">✓ ${e.autopsy}</div>`
+    : `<span style="color:var(--txt3);font-size:.78rem">No filesystem corroboration found</span>`;
+
+  document.getElementById('dp-title').textContent=
+    e.windowTitle.slice(0,45)||(e.filename||'Event Details');
+
+  document.getElementById('detail-body').innerHTML=`
+    <div class="det-section">
+      <h3>Event Identity</h3>
+      <div class="det-row"><span class="det-label">Timestamp</span>
+        <span class="det-val mono">${e.timestamp}</span></div>
+      <div class="det-row"><span class="det-label">Source</span>
+        <span class="det-val">${e.source}</span></div>
+      <div class="det-row"><span class="det-label">Snapshot ID</span>
+        <span class="det-val mono">${e.snapshotId||'—'}</span></div>
+      <div class="det-row"><span class="det-label">App ID</span>
+        <span class="det-val">${e.appId||'—'}</span></div>
+    </div>
+
+    <div class="det-section">
+      <h3>Activity</h3>
+      <div class="det-row"><span class="det-label">Window Title</span>
+        <span class="det-val">${e.windowTitle||'—'}</span></div>
+      <div class="det-row"><span class="det-label">Process Path</span>
+        <span class="det-val mono">${e.processPath||'—'}</span></div>
+      <div class="det-row"><span class="det-label">Foreground</span>
+        <span class="det-val">${e.isForeground==='true'||e.isForeground==='1'?'✓ Yes':'✗ No'}</span></div>
+    </div>
+
+    <div class="det-section">
+      <h3>URL</h3>
+      ${urlHtml}
+    </div>
+
+    ${e.ocrText?`<div class="det-section"><h3>OCR Text</h3>
+      <div style="font-size:.78rem;color:var(--txt2);line-height:1.5;
+        background:var(--surf2);padding:8px 10px;border-radius:6px;">
+        ${e.ocrText}</div></div>`:''}`+`
+
+    <div class="det-section">
+      <h3>Flags &amp; Reasons</h3>
+      ${flagHtml}
+    </div>
+
+    <div class="det-section">
+      <h3>File Integrity</h3>
+      <div class="det-row"><span class="det-label">Filename</span>
+        <span class="det-val mono">${e.filename||'—'}</span></div>
+      <div class="det-row"><span class="det-label">File Size</span>
+        <span class="det-val">${e.fileSize? (e.fileSize/1024).toFixed(1)+' KB' : '—'}</span></div>
+      <div class="det-row"><span class="det-label">Modified</span>
+        <span class="det-val mono">${e.mtime||'—'}</span></div>
+      <div class="det-row"><span class="det-label">Created</span>
+        <span class="det-val mono">${e.ctime||'—'}</span></div>
+      <div style="margin-top:6px;font-size:.72rem;color:var(--txt2)">SHA-256</div>
+      <div class="hash-full">${e.sha256||'—'}</div>
+    </div>
+
+    <div class="det-section">
+      <h3>Autopsy Corroboration</h3>
+      ${autopsyHtml}
+    </div>
+  `;
+
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function closeDetail(){
+  document.getElementById('detail-panel').classList.remove('open');
+  document.querySelectorAll('#tb tr.selected').forEach(r=>r.classList.remove('selected'));
+  currentIdx=null;
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeDetail();
+});
+</script>
+</body>
+</html>
