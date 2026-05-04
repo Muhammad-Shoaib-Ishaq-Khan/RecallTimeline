@@ -412,7 +412,7 @@ If you use RecallTimeline in your research, please cite:
 bibtex
 ```python
 @misc{khan2026recalltimeline,
-  author = {Muhammad Shoaib Ishaq Khan and Ahmad Hassan and Zoha Nazar},
+  author = {Muhammad Shoaib Ishaq Khan and Ahmad Hassan and Zoha Nazar and Dr. Ali Sufiyan},
   title = {RecallTimeline: An Open-Source Forensic Timeline Reconstruction 
            Tool for Windows Recall EXIF Artifacts},
   year = {2026},
